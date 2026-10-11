@@ -1,11 +1,24 @@
 import pandas as pd
 from sodapy import Socrata
+from pathlib import Path
 
-client = Socrata("www.datos.gov.co", None)
+client = Socrata("www.datos.gov.co", None, timeout=60)
 
-results = client.get("h2jg-r3zg", limit=2000)
+results = []
+page_size = 5000
+offset = 0
+
+while True:
+    batch = client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
+    if not batch:
+        break
+    results.extend(batch)
+    offset += page_size
 
 results_df = pd.DataFrame.from_records(results)
+results_df.columns = results_df.columns.str.lower()  # Convert column names to lowercase
+results_df.to_parquet("data.parquet", compression="zstd", index=False )
+
 
 # Save the DataFrame to a Parquet file
 results_df.to_parquet("data.parquet", engine="pyarrow", compression="zstd", index=False)
