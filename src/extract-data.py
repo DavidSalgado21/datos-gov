@@ -1,12 +1,32 @@
 import pandas as pd
 from sodapy import Socrata
 from pathlib import Path
+import time
+import requests
+
 
 client = Socrata("www.datos.gov.co", None, timeout=60)
+
+carpeta = Path("datos")
+carpeta.mkdir(exist_ok=True)
+max_reintentos = 5
 
 results = []
 page_size = 5000
 offset = 0
+
+def descargar_pagina(offset, page_size, max_reintentos=5):
+    for intento in range(1, max_reintentos + 1):
+        try:
+            return client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
+        except (requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.HTTPError) as e:
+            espera = 2 ** intento
+            print(f"Error en offset {offset} (intento {intento}): {e}. Reintento en {espera}s")
+            time.sleep(espera)
+    raise RuntimeError(f"No se pudo descargar la página con offset={offset}")
+
 
 while True:
     batch = client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
