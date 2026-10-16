@@ -37,7 +37,7 @@ while True:
 
 results_df = pd.DataFrame.from_records(results)
 results_df.columns = results_df.columns.str.lower()  # Convert column names to lowercase
-results_df.to_parquet("data.parquet", compression="zstd", index=False )
+results_df.to_parquet("data/data.parquet", compression="zstd", index=False )
 
 # Save the DataFrame to a Parquet file
 results_df["tipoentidad"] = pd.to_numeric(results_df["tipoentidad"], errors = 'coerce')
