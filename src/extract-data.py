@@ -48,5 +48,5 @@ results_df["subcuenta"] = pd.to_numeric(results_df["subcuenta"], errors = 'coerc
 results_df["persona_natural"] = pd.to_numeric(results_df["persona_natural"], errors = 'coerce')
 results_df["persona_juridica"] = pd.to_numeric(results_df["persona_juridica"], errors = 'coerce')
 results_df["total_tarjetas"] = pd.to_numeric(results_df["total_tarjetas"], errors = 'coerce')
-results_df.to_parquet("data.parquet", engine="pyarrow", compression="zstd", index=False)
+results_df.to_parquet("data/data.parquet", engine="pyarrow", compression="zstd", index=False)
 print(results_df.head())
