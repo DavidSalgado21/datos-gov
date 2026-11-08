@@ -15,7 +15,7 @@ results = []
 page_size = 5000
 offset = 0
 
-def descargar_pagina(offset, page_size, max_reintentos=5):
+def download_page(offset, page_size, max_reintentos=5):
     for intento in range(1, max_reintentos + 1):
         try:
             return client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
@@ -30,7 +30,7 @@ def descargar_pagina(offset, page_size, max_reintentos=5):
 # 
 
 while True:
-    batch = client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
+    batch = download_page(offset, page_size, max_reintentos)
     if not batch:
         break
     results.extend(batch)
@@ -48,14 +48,8 @@ def save_dataframe_to_parquet():
     results_df[columns_numbers] = results_df[columns_numbers].apply(
         pd.to_numeric, errors='coerce'
     )
+    results_df["fechacorte"] = pd.to_datetime(results_df["fechacorte"])
+    results_df.to_parquet("data/data.parquet", engine="pyarrow", compression="zstd", index=False)
+    print(results_df.head())
 
-results_df["tipoentidad"] = pd.to_numeric(results_df["tipoentidad"], errors = 'coerce')
-results_df["codigoentidad"] = pd.to_numeric(results_df["codigoentidad"], errors = 'coerce')
-results_df["fechacorte"] = pd.to_datetime(results_df["fechacorte"])
-results_df["cod_uca"] = pd.to_numeric(results_df["cod_uca"], errors = 'coerce')
-results_df["subcuenta"] = pd.to_numeric(results_df["subcuenta"], errors = 'coerce')
-results_df["persona_natural"] = pd.to_numeric(results_df["persona_natural"], errors = 'coerce')
-results_df["persona_juridica"] = pd.to_numeric(results_df["persona_juridica"], errors = 'coerce')
-results_df["total_tarjetas"] = pd.to_numeric(results_df["total_tarjetas"], errors = 'coerce')
-results_df.to_parquet("data/data.parquet", engine="pyarrow", compression="zstd", index=False)
-print(results_df.head())
+save_dataframe_to_parquet()
