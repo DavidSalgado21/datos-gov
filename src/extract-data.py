@@ -7,13 +7,12 @@ import requests
 
 client = Socrata("www.datos.gov.co", None, timeout=60)
 
-carpeta = Path("datos")
+carpeta = Path("data")
 carpeta.mkdir(exist_ok=True)
-max_reintentos = 5
 
-results = []
+max_reintentos = 5
 page_size = 5000
-offset = 0
+FORZAR_TEXTO = ["codigoentidad", "cod_uca"]
 
 def download_page(offset, page_size, max_reintentos=5):
     for intento in range(1, max_reintentos + 1):
@@ -27,7 +26,42 @@ def download_page(offset, page_size, max_reintentos=5):
             time.sleep(espera)
     raise RuntimeError(f"No se pudo descargar la página con offset={offset}")
 
-# 
+# Detect and convert type
+def detect_type(serie, umbral=0.95):
+    no_null = serie.dropna()
+    no_null = no_null[no_null.astype(str).str.strip() != ""]
+    if no_null.empty:
+        return "texto"
+
+    numeric = pd.to_numeric(no_null, errors='coerce')
+    if numeric.notna().mean() >= umbral:
+        return "numerico"
+
+    date = pd.to_datetime(no_null, errors="coerce", format="ISO8601")
+    if date.notna().mean() >= umbral:
+        return "fecha"
+
+    return "texto"
+
+def convert_types(df, umbral=0.95, forzar_texto=()):
+    types = {}
+    for col in df.columns:
+        tipo = "texto" if col in forzar_texto else detect_type(df[col], umbral)
+        types[col] = tipo
+
+        if tipo == "numerico":
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        elif tipo == "fecha":
+            df[col] = pd.to_datetime(df[col], errors='coerce', format="ISO8601")
+        else:
+            df[col] = df[col].astype("string")
+
+    return df, types
+
+############## Download ####################
+
+results = []
+offset = 0
 
 while True:
     batch = download_page(offset, page_size, max_reintentos)
@@ -36,20 +70,19 @@ while True:
     results.extend(batch)
     offset += page_size
 
+
+#################### Procesing #########################
+
 results_df = pd.DataFrame.from_records(results)
-results_df.columns = results_df.columns.str.lower()  # Convert column names to lowercase
-results_df.to_parquet("data/data.parquet", compression="zstd", index=False )
+results_df.columns = results_df.columns.str.lower()
 
-# Save the DataFrame to a Parquet file
+results_df, types = convert_types(results_df, forzar_texto=FORZAR_TEXTO)
 
-def save_dataframe_to_parquet():
-    columns_numbers = ["tipoentidad", "codigoentidad", "cod_uca", "subcuenta", "persona_natural", "persona_juridica", "total_tarjetas"]
+print("Tipos de datos detectados:")
+for col, tipo in types.items():
+    print(f"{col}: {tipo}")
 
-    results_df[columns_numbers] = results_df[columns_numbers].apply(
-        pd.to_numeric, errors='coerce'
-    )
-    results_df["fechacorte"] = pd.to_datetime(results_df["fechacorte"])
-    results_df.to_parquet("data/data.parquet", engine="pyarrow", compression="zstd", index=False)
-    print(results_df.head())
-
-save_dataframe_to_parquet()
+######### Save ###############
+results_df.to_parquet(carpeta / "data.parquet", engine="pyarrow", compression="zstd", index=False)
+print(results_df.head())
+print(results_df.dtypes)
