@@ -27,6 +27,7 @@ def descargar_pagina(offset, page_size, max_reintentos=5):
             time.sleep(espera)
     raise RuntimeError(f"No se pudo descargar la página con offset={offset}")
 
+# 
 
 while True:
     batch = client.get("h2jg-r3zg", offset=offset, limit=page_size, order=":id")
@@ -40,6 +41,14 @@ results_df.columns = results_df.columns.str.lower()  # Convert column names to l
 results_df.to_parquet("data/data.parquet", compression="zstd", index=False )
 
 # Save the DataFrame to a Parquet file
+
+def save_dataframe_to_parquet():
+    columns_numbers = ["tipoentidad", "codigoentidad", "cod_uca", "subcuenta", "persona_natural", "persona_juridica", "total_tarjetas"]
+
+    results_df[columns_numbers] = results_df[columns_numbers].apply(
+        pd.to_numeric, errors='coerce'
+    )
+
 results_df["tipoentidad"] = pd.to_numeric(results_df["tipoentidad"], errors = 'coerce')
 results_df["codigoentidad"] = pd.to_numeric(results_df["codigoentidad"], errors = 'coerce')
 results_df["fechacorte"] = pd.to_datetime(results_df["fechacorte"])

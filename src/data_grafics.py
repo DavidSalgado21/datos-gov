@@ -26,6 +26,9 @@ top_cards_juridica = con.execute("SELECT nombreentidad, SUM(persona_juridica) as
                                 "LIMIT 10").df()
 pd.set_option('display.float_format', '{:.0f}'.format)
 
+######################## SHARE DATAFRAME ##############################
+
+
 
 ######################## CREATE GRAFICS ##############################
 
